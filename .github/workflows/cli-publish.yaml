@@ -64,7 +64,6 @@ jobs:
           $CARGO_PATH="crates\$CRATE_NAME\Cargo.toml"
           $VERSION = Get-Content $CARGO_PATH | Select-String -Pattern '^\w*version = "(\d*\.\d*.\d*)"' | % {"$($_.matches.groups[1])"}
           $ExePath = "target\cli\$CRATE_NAME.exe"
-          $apiKey = $env:CHOCO_API_KEY
           $ZIP_NAME="$NAME-$VERSION-Windows-x86_64.zip"
 
           choco install checksum -y
@@ -88,7 +87,7 @@ jobs:
 
           ls
 
-          choco apikey --api-key $apiKey --source https://push.chocolatey.org/
+          choco apikey --api-key $env:CHOCO_API_KEY --source https://push.chocolatey.org/
 
           choco push aptos.$VERSION.nupkg --source https://push.chocolatey.org/
 
