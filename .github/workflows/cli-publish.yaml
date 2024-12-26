@@ -1,0 +1,94 @@
+name: Checkout Aptos CLI Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Aptos CLI version (e.g., v5.1.0)'
+        required: true
+
+jobs:
+  checkout_version:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Checkout Aptos CLI version
+        run: |
+          # 获取输入的版本号
+          $env:VERSION = "${{ github.event.inputs.version }}"
+          
+          # 检出 Aptos CLI 仓库
+          git clone https://github.com/aptos-labs/aptos-core.git
+          cd aptos-core
+          
+          git fetch --tags
+          git checkout "aptos-cli-$env:VERSION" 
+          
+          echo "Checked out version: $env:VERSION"
+
+      - name: Download and Extract Aptos CLI release
+        run: |
+          $env:No_v_VERSION = "${{ github.event.inputs.version }}".Substring(1)
+          $env:VERSION = "${{ github.event.inputs.version }}"
+          $NAME="aptos-cli"
+          $ZIP_NAME="$NAME-$env:No_v_VERSION-Windows-x86_64.zip"
+          $URL = "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-$env:VERSION/$ZIP_NAME"
+          $DEST_DIR = "./target/cli"
+
+          cd aptos-core
+
+          New-Item -Path $DEST_DIR -ItemType Directory -Force
+
+          Invoke-WebRequest -Uri $URL -OutFile "$DEST_DIR\$ZIP_NAME"
+          Expand-Archive -Path "$DEST_DIR\$ZIP_NAME" -DestinationPath $DEST_DIR
+
+          ls ./target/cli
+
+          Write-Host "Aptos CLI version $env:VERSION extracted to $DEST_DIR"
+
+      - name: Publish to Choco
+        run: |
+
+          cd aptos-core
+
+          New-Item -Path chocolatey -ItemType Directory -Force
+
+          Copy-Item ..\aptos.nuspec -Destination ./chocolatey/aptos.nuspec
+
+          $NAME="aptos-cli"
+          $CRATE_NAME="aptos"
+          $CARGO_PATH="crates\$CRATE_NAME\Cargo.toml"
+          $VERSION = Get-Content $CARGO_PATH | Select-String -Pattern '^\w*version = "(\d*\.\d*.\d*)"' | % {"$($_.matches.groups[1])"}
+          $ExePath = "target\cli\$CRATE_NAME.exe"
+          $CHOCO_API_KEY = ${{ secrets.CHOCO_API_KEY }}
+          $apiKey = $env:CHOCO_API_KEY
+          $ZIP_NAME="$NAME-$VERSION-Windows-x86_64.zip"
+
+          choco install checksum -y
+
+          $aptosHash = & checksum -t sha256 $ExePath
+          
+          Set-Location -Path "chocolatey"
+
+          @'
+          Aptos Binary verification steps
+          1. Download https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-$VERSION/$ZIP_NAME
+          2. Extract aptos.exe
+          3. Verify binary: checksum.exe -t sha256 aptos.exe: $aptosHash
+
+          File 'LICENSE.txt' is obtained from: https://github.com/aptos-labs/aptos-core/blob/main/LICENSE
+          '@ | Out-File -FilePath "VERIFICATION.txt" -Encoding utf8 -Append
+
+          Copy-Item ..\LICENSE -Destination LICENSE.txt
+
+          choco pack --version $VERSION configuration=release
+
+          ls
+
+          choco apikey --api-key $apiKey --source https://push.chocolatey.org/
+
+          choco push aptos.$VERSION.nupkg --source https://push.chocolatey.org/
+
+          Set-Location -Path ".."
