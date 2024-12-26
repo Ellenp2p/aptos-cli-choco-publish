@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          - persist-credentials: false
       - name: Checkout Aptos CLI version
         run: |
           # 获取输入的版本号
