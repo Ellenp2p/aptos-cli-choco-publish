@@ -49,6 +49,8 @@ jobs:
           Write-Host "Aptos CLI version $env:VERSION extracted to $DEST_DIR"
 
       - name: Publish to Choco
+        env:
+          CHOCO_API_KEY: ${{ secrets.SuperSecret }}
         run: |
 
           cd aptos-core
@@ -62,7 +64,6 @@ jobs:
           $CARGO_PATH="crates\$CRATE_NAME\Cargo.toml"
           $VERSION = Get-Content $CARGO_PATH | Select-String -Pattern '^\w*version = "(\d*\.\d*.\d*)"' | % {"$($_.matches.groups[1])"}
           $ExePath = "target\cli\$CRATE_NAME.exe"
-          $CHOCO_API_KEY = ${{ secrets.CHOCO_API_KEY }}
           $apiKey = $env:CHOCO_API_KEY
           $ZIP_NAME="$NAME-$VERSION-Windows-x86_64.zip"
 
