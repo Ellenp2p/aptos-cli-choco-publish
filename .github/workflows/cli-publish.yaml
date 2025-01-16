@@ -44,6 +44,8 @@ jobs:
           Invoke-WebRequest -Uri $URL -OutFile "$DEST_DIR\$ZIP_NAME"
           Expand-Archive -Path "$DEST_DIR\$ZIP_NAME" -DestinationPath $DEST_DIR
 
+          Get-ChildItem $DEST_DIR | Format-Table Name,Length, -AutoSize
+
           Write-Host "Aptos CLI version $env:VERSION extracted to $DEST_DIR"
 
       - name: Publish to Choco
@@ -83,6 +85,10 @@ jobs:
 
           choco pack --version $VERSION configuration=release
 
-          choco push aptos.$VERSION.nupkg -k "$env:CHOCO_API_KEY" --source https://push.chocolatey.org/
+          Get-ChildItem
+
+          (Get-Item "aptos.$VERSION.nupkg").Length
+
+          #choco push aptos.$VERSION.nupkg -k "$env:CHOCO_API_KEY" --source https://push.chocolatey.org/
 
           Set-Location -Path ".."
