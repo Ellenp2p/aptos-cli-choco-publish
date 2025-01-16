@@ -93,8 +93,6 @@ jobs:
 
           aptos.exe -V
 
-          #choco push aptos.$VERSION.nupkg -k "$env:CHOCO_API_KEY" --source https://push.chocolatey.org/
-
-
+          choco push aptos.$VERSION.nupkg -k "$env:CHOCO_API_KEY" --source https://push.chocolatey.org/
 
           Set-Location -Path ".."
