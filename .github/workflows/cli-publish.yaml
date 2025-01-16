@@ -89,9 +89,9 @@ jobs:
 
           (Get-Item "aptos.$VERSION.nupkg").Length
 
-          choco install aptos.$VERSION.nupkg --source="./"
+          choco install aptos --version="$VERSION" --source="./"
 
-          aptos -V
+          aptos.exe -V
 
           #choco push aptos.$VERSION.nupkg -k "$env:CHOCO_API_KEY" --source https://push.chocolatey.org/
 
