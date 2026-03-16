@@ -27,7 +27,7 @@ jobs:
               owner: 'aptos-labs',
               repo: 'aptos-core',
             });
-            const getReleaseTimeMs = (item) => {
+            const getSortableReleaseTime = (item) => {
               const date = item.published_at ?? item.created_at;
               if (!date) {
                 return Number.MIN_SAFE_INTEGER;
@@ -38,7 +38,7 @@ jobs:
 
             const release = releases
               .filter((item) => !item.draft && !item.prerelease && item.tag_name)
-              .sort((a, b) => getReleaseTimeMs(b) - getReleaseTimeMs(a))
+              .sort((a, b) => getSortableReleaseTime(b) - getSortableReleaseTime(a))
               .find((item) => releaseTagPattern.test(item.tag_name));
             if (!release) {
               core.setFailed('Could not find a stable Aptos CLI release tag in aptos-labs/aptos-core releases');
