@@ -37,15 +37,17 @@ jobs:
               return Number.isNaN(parsed) ? Number.MIN_SAFE_INTEGER : parsed;
             };
 
+            const isBetterRelease = (candidate, currentBest) => {
+              const timeDiff = getSortableReleaseTime(candidate) - getSortableReleaseTime(currentBest);
+              if (timeDiff !== 0) {
+                return timeDiff > 0;
+              }
+              return (candidate.id ?? 0) > (currentBest.id ?? 0);
+            };
+
             const release = releases
               .filter((item) => !item.draft && !item.prerelease && item.tag_name && releaseTagPattern.test(item.tag_name))
-              .sort((a, b) => {
-                const timeDiff = getSortableReleaseTime(b) - getSortableReleaseTime(a);
-                if (timeDiff !== 0) {
-                  return timeDiff;
-                }
-                return (b.id ?? 0) - (a.id ?? 0);
-              })[0];
+              .reduce((best, item) => (best && !isBetterRelease(item, best) ? best : item), null);
             if (!release) {
               core.setFailed('Could not find a stable Aptos CLI release tag in aptos-labs/aptos-core releases');
               return;
@@ -66,7 +68,23 @@ jobs:
             core.info(`Chocolatey package version to check: ${packageVersion}`);
 
             const checkUrl = `https://community.chocolatey.org/api/v2/package/aptos/${packageVersion}`;
-            const response = await fetch(checkUrl, { redirect: 'manual' });
+            const timeoutMs = 15000;
+            const abortController = new AbortController();
+            const timeoutHandle = setTimeout(() => abortController.abort(), timeoutMs);
+
+            let response;
+            try {
+              response = await fetch(checkUrl, { redirect: 'manual', signal: abortController.signal });
+            } catch (error) {
+              if (error?.name === 'AbortError') {
+                core.setFailed(`Timed out after ${timeoutMs}ms while checking ${checkUrl}`);
+                return;
+              }
+              core.setFailed(`Failed to query Chocolatey package endpoint ${checkUrl}: ${error?.message ?? error}`);
+              return;
+            } finally {
+              clearTimeout(timeoutHandle);
+            }
 
             let shouldPublish;
             if (response.status === 404) {
