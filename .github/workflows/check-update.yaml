@@ -13,7 +13,7 @@ jobs:
   check_and_trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Check whether a new aptos CLI version needs publishing
+      - name: Check whether a new Aptos CLI version needs publishing
         id: check
         uses: actions/github-script@v7
         with:
@@ -62,4 +62,4 @@ jobs:
 
       - name: No update needed
         if: steps.check.outputs.should_publish != 'true'
-        run: echo "Chocolatey already has the latest aptos version, no publish triggered."
+        run: echo "Chocolatey already has the latest Aptos version, no publish triggered."
