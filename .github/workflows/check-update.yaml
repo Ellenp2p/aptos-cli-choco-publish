@@ -29,20 +29,18 @@ jobs:
               per_page: 100,
             });
 
-            const release = releases.find((item) => !item.draft && !item.prerelease && releaseTagPattern.test(item.tag_name));
+            const release = releases
+              .filter((item) => !item.draft && !item.prerelease && item.tag_name)
+              .sort((a, b) => new Date(b.published_at ?? b.created_at ?? 0) - new Date(a.published_at ?? a.created_at ?? 0))
+              .find((item) => releaseTagPattern.test(item.tag_name));
             if (!release) {
               core.setFailed('Could not find a stable Aptos CLI release tag in aptos-labs/aptos-core releases');
               return;
             }
 
             const rawTag = release.tag_name;
-            const tagMatch = rawTag.match(releaseTagPattern);
-            if (!tagMatch) {
-              core.setFailed(`Unexpected Aptos release tag format: ${rawTag}`);
-              return;
-            }
-
-            const version = tagMatch[1].startsWith('v') ? tagMatch[1] : `v${tagMatch[1]}`;
+            const versionSuffix = rawTag.replace(/^aptos-cli-/, '');
+            const version = versionSuffix.startsWith('v') ? versionSuffix : `v${versionSuffix}`;
             const packageVersion = version.replace(/^v/, '');
 
             core.info(`Latest aptos CLI release tag: ${rawTag}`);
