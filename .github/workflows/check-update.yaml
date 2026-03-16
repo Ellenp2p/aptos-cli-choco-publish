@@ -1,4 +1,4 @@
-name: Check Aptos CLI update
+name: 检查 Aptos CLI 更新
 
 on:
   schedule:

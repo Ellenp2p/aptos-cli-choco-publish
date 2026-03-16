@@ -1,4 +1,4 @@
-name: Checkout Aptos CLI Version
+name: 发布指定版本 Aptos CLI 到 Chocolatey
 
 on:
   workflow_dispatch:
