@@ -26,6 +26,7 @@ jobs:
             const releases = await github.paginate(github.rest.repos.listReleases, {
               owner: 'aptos-labs',
               repo: 'aptos-core',
+              per_page: 100,
             });
             const getSortableReleaseTime = (item) => {
               const date = item.published_at ?? item.created_at;
@@ -37,9 +38,14 @@ jobs:
             };
 
             const release = releases
-              .filter((item) => !item.draft && !item.prerelease && item.tag_name)
-              .sort((a, b) => getSortableReleaseTime(b) - getSortableReleaseTime(a))
-              .find((item) => releaseTagPattern.test(item.tag_name));
+              .filter((item) => !item.draft && !item.prerelease && item.tag_name && releaseTagPattern.test(item.tag_name))
+              .sort((a, b) => {
+                const timeDiff = getSortableReleaseTime(b) - getSortableReleaseTime(a);
+                if (timeDiff !== 0) {
+                  return timeDiff;
+                }
+                return (b.id ?? 0) - (a.id ?? 0);
+              })[0];
             if (!release) {
               core.setFailed('Could not find a stable Aptos CLI release tag in aptos-labs/aptos-core releases');
               return;
