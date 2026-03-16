@@ -26,12 +26,15 @@ jobs:
             const releases = await github.paginate(github.rest.repos.listReleases, {
               owner: 'aptos-labs',
               repo: 'aptos-core',
-              per_page: 100,
             });
+            const releaseTimestamp = (item) => {
+              const date = item.published_at ?? item.created_at;
+              return date ? Date.parse(date) : Number.MIN_SAFE_INTEGER;
+            };
 
             const release = releases
               .filter((item) => !item.draft && !item.prerelease && item.tag_name)
-              .sort((a, b) => new Date(b.published_at ?? b.created_at ?? 0) - new Date(a.published_at ?? a.created_at ?? 0))
+              .sort((a, b) => releaseTimestamp(b) - releaseTimestamp(a))
               .find((item) => releaseTagPattern.test(item.tag_name));
             if (!release) {
               core.setFailed('Could not find a stable Aptos CLI release tag in aptos-labs/aptos-core releases');
