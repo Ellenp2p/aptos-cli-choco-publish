@@ -5,6 +5,10 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: check-update-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   actions: write
   contents: read
@@ -24,7 +28,13 @@ jobs:
             });
 
             const rawTag = release.data.tag_name;
-            const version = rawTag.startsWith('aptos-cli-') ? rawTag.replace('aptos-cli-', '') : rawTag;
+            const tagMatch = rawTag.match(/^aptos-cli-(v?\d+\.\d+\.\d+)$/);
+            if (!tagMatch) {
+              core.setFailed(`Unexpected Aptos release tag format: ${rawTag}`);
+              return;
+            }
+
+            const version = tagMatch[1].startsWith('v') ? tagMatch[1] : `v${tagMatch[1]}`;
             const packageVersion = version.replace(/^v/, '');
 
             core.info(`Latest aptos CLI release tag: ${rawTag}`);
@@ -34,7 +44,15 @@ jobs:
             const checkUrl = `https://community.chocolatey.org/api/v2/package/aptos/${packageVersion}`;
             const response = await fetch(checkUrl, { redirect: 'manual' });
 
-            const shouldPublish = response.status === 404;
+            let shouldPublish;
+            if (response.status === 404) {
+              shouldPublish = true;
+            } else if ([200, 301, 302, 303, 307, 308].includes(response.status)) {
+              shouldPublish = false;
+            } else {
+              core.setFailed(`Unexpected Chocolatey response status ${response.status} for ${checkUrl}`);
+              return;
+            }
             core.info(`Chocolatey response status: ${response.status}`);
             core.info(`Should trigger publish: ${shouldPublish}`);
 
