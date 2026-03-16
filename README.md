@@ -1,56 +1,56 @@
 # aptos-cli-choco-publish
 
-This repository automatically packages and publishes the [Aptos CLI](https://github.com/aptos-labs/aptos-core) to [Chocolatey](https://community.chocolatey.org/packages/aptos).
+本仓库用于自动将 [Aptos CLI](https://github.com/aptos-labs/aptos-core) 打包并发布到 [Chocolatey](https://community.chocolatey.org/packages/aptos)。
 
 ---
 
-## Two Workflows — Which One Should I Use?
+## 两个 CI 工作流，到底用哪个？
 
-There are two GitHub Actions workflows in this repository. They work together: one watches for new releases, the other does the actual publishing.
+仓库里有两个 GitHub Actions 工作流，它们是**配合使用**的：一个负责监测新版本，另一个负责实际发布。
 
-### 1. `check-update.yaml` — Automated Version Check (runs itself)
+### 1. `check-update.yaml` —— 自动版本检测（自己跑，不用管）
 
-| Property | Detail |
-|----------|--------|
-| **Triggered by** | Automatically every day at 02:00 UTC, or manually via **Actions → Check Aptos CLI update → Run workflow** |
-| **What it does** | Looks up the latest stable Aptos CLI release in `aptos-labs/aptos-core`, then checks whether that version already exists on Chocolatey. If it does **not** exist yet, it automatically dispatches `cli-publish.yaml` to publish it. |
-| **Do I need to run this manually?** | **No** — it runs on a daily schedule. You would only trigger it manually if you want to force an immediate check without waiting for the next scheduled run. |
+| 属性 | 说明 |
+|------|------|
+| **触发方式** | 每天北京时间 10:00（UTC 02:00）自动运行；也可在 **Actions → Check Aptos CLI update → Run workflow** 手动触发 |
+| **做什么** | 去 `aptos-labs/aptos-core` 查最新稳定版 Aptos CLI，再检查 Chocolatey 上有没有这个版本。如果**没有**，就自动触发 `cli-publish.yaml` 去发布。 |
+| **需要手动运行吗？** | **不需要**——它每天自动跑。只有当你不想等到明天、想立刻检查一次时，才需要手动触发。 |
 
-### 2. `cli-publish.yaml` — Chocolatey Publisher (the real worker)
+### 2. `cli-publish.yaml` —— Chocolatey 发布（真正干活的）
 
-| Property | Detail |
-|----------|--------|
-| **Triggered by** | Automatically by `check-update.yaml` when a new version is detected, **or** manually via **Actions → Checkout Aptos CLI Version → Run workflow** (you must supply the version, e.g. `v5.1.0`) |
-| **What it does** | Clones `aptos-labs/aptos-core` at the specified release tag, downloads the Windows binary, computes its checksum, packs a `.nupkg`, and pushes it to Chocolatey. |
-| **Do I need to run this manually?** | **Only** if you want to publish a specific version right now without waiting for the daily check, or if you need to re-publish a version that the automatic check missed. |
+| 属性 | 说明 |
+|------|------|
+| **触发方式** | 由 `check-update.yaml` 检测到新版本后**自动调用**；也可在 **Actions → Checkout Aptos CLI Version → Run workflow** 手动触发（需要自己填写版本号，例如 `v5.1.0`） |
+| **做什么** | 拉取指定版本的 `aptos-labs/aptos-core`，下载 Windows 二进制文件，计算校验和，打包成 `.nupkg`，然后推送到 Chocolatey。 |
+| **需要手动运行吗？** | **一般不需要**。只有在想立刻发布某个特定版本、或者自动流程漏掉了某个版本时，才需要手动触发。 |
 
 ---
 
-## Summary
+## 整体流程图
 
 ```
-Daily cron (02:00 UTC)
+每天定时（北京时间 10:00）
         │
         ▼
 check-update.yaml
-  ├── Latest aptos-cli version already on Chocolatey?
-  │     YES → "No update needed", workflow ends.
+  ├── Chocolatey 上已有最新版？
+  │     是 → 输出"无需更新"，流程结束。
   │
-  └──   NO  → dispatches cli-publish.yaml with the new version
+  └──   否 → 自动触发 cli-publish.yaml，传入新版本号
                         │
                         ▼
               cli-publish.yaml
-              builds & pushes the Chocolatey package
+              打包并推送 Chocolatey 包
 ```
 
-**Normal operation:** you don't need to touch either workflow. `check-update.yaml` runs every day and calls `cli-publish.yaml` automatically whenever a new Aptos CLI release appears.
+**正常情况下**：两个工作流都不需要手动操作，每天自动完成检测和发布。
 
-**Manual publish:** if you need to publish a specific version immediately, run **`cli-publish.yaml`** directly from the Actions tab and enter the version number.
+**手动发布**：如果需要立刻发布某个指定版本，直接在 Actions 页面运行 **`cli-publish.yaml`** 并填入版本号即可。
 
 ---
 
-## Required Secret
+## 所需密钥
 
-| Secret | Description |
-|--------|-------------|
-| `CHOCO_API_KEY` | Your Chocolatey API key, used by `cli-publish.yaml` to push the package. Set it under **Settings → Secrets and variables → Actions**. |
+| 密钥名称 | 说明 |
+|----------|------|
+| `CHOCO_API_KEY` | 你的 Chocolatey API Key，供 `cli-publish.yaml` 推送包时使用。在 **Settings → Secrets and variables → Actions** 中设置。 |
