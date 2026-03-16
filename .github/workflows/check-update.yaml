@@ -46,7 +46,12 @@ jobs:
             }
 
             const rawTag = release.tag_name;
-            const versionSuffix = rawTag.replace(/^aptos-cli-/, '');
+            const tagMatch = rawTag.match(releaseTagPattern);
+            if (!tagMatch) {
+              core.setFailed(`Unexpected Aptos release tag format: ${rawTag}`);
+              return;
+            }
+            const versionSuffix = tagMatch[1];
             const version = versionSuffix.startsWith('v') ? versionSuffix : `v${versionSuffix}`;
             const packageVersion = version.replace(/^v/, '');
 
